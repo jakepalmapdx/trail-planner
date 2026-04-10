@@ -16,9 +16,10 @@ function GearItem({ item, onToggle, onDelete, onEdit }) {
   const [isEditing, setIsEditing] = useState(false)
   const [editName, setEditName] = useState(item.name)
   const [editNote, setEditNote] = useState(item.note)
+  const [editProduct, setEditProduct] = useState(item.productName || '')
 
   const handleSave = () => {
-    onEdit(item.id, { name: editName, note: editNote })
+    onEdit(item.id, { name: editName, note: editNote, productName: editProduct })
     setIsEditing(false)
   }
 
@@ -71,6 +72,7 @@ function GearItem({ item, onToggle, onDelete, onEdit }) {
               onChange={e => setEditName(e.target.value)}
               onKeyDown={handleKeyDown}
               autoFocus
+              placeholder="Item name (e.g. 3-Season Tent)"
               style={{
                 background: '#1a1714',
                 border: '1px solid #5a8fa3',
@@ -78,6 +80,22 @@ function GearItem({ item, onToggle, onDelete, onEdit }) {
                 color: '#e8e0d8',
                 padding: '5px 8px',
                 fontSize: '13px',
+                width: '100%',
+                outline: 'none'
+              }}
+            />
+            <input
+              value={editProduct}
+              onChange={e => setEditProduct(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Actual product name (e.g. REI Half Dome 2)"
+              style={{
+                background: '#1a1714',
+                border: '1px solid #3d3731',
+                borderRadius: '3px',
+                color: '#b8afa8',
+                padding: '5px 8px',
+                fontSize: '12px',
                 width: '100%',
                 outline: 'none'
               }}
@@ -119,10 +137,38 @@ function GearItem({ item, onToggle, onDelete, onEdit }) {
                 textDecoration: item.checked ? 'line-through' : 'none',
                 textDecorationColor: '#7a6f66',
                 cursor: 'pointer',
-                lineHeight: '1.4'
+                lineHeight: '1.4',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                flexWrap: 'wrap',
               }}
             >
-              {item.name}
+              <span>
+                {item.name}
+                {item.productName && (
+                  <span style={{ color: '#7a6f66' }}> — </span>
+                )}
+                {item.productName && (
+                  <span style={{ color: '#c9a84c' }}>{item.productName}</span>
+                )}
+              </span>
+              {item.fromInventory && (
+                <span
+                  title="Pulled from your gear inventory"
+                  style={{
+                    fontFamily: 'monospace', fontSize: '8px',
+                    letterSpacing: '0.1em', textTransform: 'uppercase',
+                    padding: '2px 6px', borderRadius: '2px',
+                    color: '#6b8c5a',
+                    border: '1px solid #6b8c5a55',
+                    background: 'rgba(107,140,90,0.1)',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  ✓ My Gear
+                </span>
+              )}
             </div>
             {item.note && (
               <div style={{
@@ -388,8 +434,9 @@ function GearCategory({ category, onToggleItem, onDeleteItem, onEditItem, onAddI
   )
 }
 
-function GearList({ categories, setCategories }) {
+function GearList({ categories, setCategories, gearAdvice }) {
   const [activeCategory, setActiveCategory] = useState(null)
+  const [adviceCollapsed, setAdviceCollapsed] = useState(false)
 
   const totalItems = categories.reduce((sum, cat) => sum + cat.items.length, 0)
   const checkedItems = categories.reduce((sum, cat) =>
@@ -446,6 +493,53 @@ function GearList({ categories, setCategories }) {
 
   return (
     <div style={{ maxWidth: '860px', margin: '0 auto', padding: '0 24px 80px' }}>
+
+      {/* AI Gear Advice Banner */}
+      {gearAdvice && gearAdvice.trim() && (
+        <div style={{
+          marginTop: '24px',
+          background: 'rgba(201,168,76,0.06)',
+          border: '1px solid rgba(201,168,76,0.25)',
+          borderRadius: '4px',
+          padding: '14px 16px',
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            marginBottom: adviceCollapsed ? 0 : '10px',
+          }}>
+            <div style={{
+              fontFamily: 'monospace', fontSize: '10px',
+              letterSpacing: '0.14em', textTransform: 'uppercase',
+              color: '#c9a84c',
+            }}>
+              ✨ AI Gear Suitability Review
+            </div>
+            <button
+              onClick={() => setAdviceCollapsed(c => !c)}
+              style={{
+                background: 'none', border: 'none',
+                color: '#7a6f66', cursor: 'pointer',
+                fontSize: '11px', fontFamily: 'monospace',
+                letterSpacing: '0.1em', textTransform: 'uppercase',
+                padding: '2px 6px',
+              }}
+            >
+              {adviceCollapsed ? 'Show' : 'Hide'}
+            </button>
+          </div>
+          {!adviceCollapsed && (
+            <div style={{
+              fontSize: '13px', color: '#b8afa8', lineHeight: 1.6,
+              whiteSpace: 'pre-wrap',
+            }}>
+              {gearAdvice}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Progress Bar */}
       <div style={{ padding: '24px 0 28px' }}>

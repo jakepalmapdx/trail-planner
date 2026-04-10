@@ -1,27 +1,16 @@
 import { useState } from 'react'
 import { useAuth } from './contexts/AuthContext'
-import useLocalStorage from './hooks/useLocalStorage'
-import { trails } from './data/trails'
-import Header from './components/Header'
-import GearList from './components/GearList'
-import CostCalculator from './components/CostCalculator'
-import FoodPlanner from './components/FoodPlanner'
 import AuthPage from './pages/AuthPage'
+import TripsPage from './pages/TripsPage'
+import TripView from './pages/TripView'
+import GearInventoryPage from './pages/GearInventoryPage'
+import AppHeader from './components/AppHeader'
 import './App.css'
 
 function App() {
   const { user, loading, signOut } = useAuth()
-  const [activeTab, setActiveTab] = useState('gear')
-  const [selectedTrail, setSelectedTrail] = useLocalStorage(
-    'selectedTrail',
-    trails[0].id
-  )
-  const [gearData, setGearData] = useLocalStorage(
-    'gearData',
-    trails[0].gearCategories
-  )
-
-  const trail = trails.find(t => t.id === selectedTrail)
+  const [activePage, setActivePage] = useState('trips')
+  const [activeTrip, setActiveTrip] = useState(null)
 
   if (loading) {
     return (
@@ -35,27 +24,23 @@ function App() {
     return <AuthPage />
   }
 
-  return (
-    <div className="app">
-      <Header
-        trail={trail}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
+  if (activeTrip) {
+    return (
+      <TripView
+        trip={activeTrip}
+        onBack={() => setActiveTrip(null)}
         user={user}
         onSignOut={signOut}
+        onTripUpdated={setActiveTrip}
       />
-      {activeTab === 'gear' && (
-        <GearList
-          categories={gearData}
-          setCategories={setGearData}
-        />
-      )}
-      {activeTab === 'cost' && (
-        <CostCalculator />
-      )}
-      {activeTab === 'food' && (
-        <FoodPlanner />
-      )}
+    )
+  }
+
+  return (
+    <div className="trips-page">
+      <AppHeader activePage={activePage} onNavigate={setActivePage} />
+      {activePage === 'trips' && <TripsPage onOpenTrip={setActiveTrip} />}
+      {activePage === 'gear' && <GearInventoryPage />}
     </div>
   )
 }

@@ -1,5 +1,18 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import useLocalStorage from '../hooks/useLocalStorage'
+
+// Map a gear category id (from AI/gear list) to a cost section id.
+// Falls back to 'misc' if no match.
+function mapGearCategoryToCostSection(gearCategoryId) {
+  const id = (gearCategoryId || '').toLowerCase()
+  if (id.includes('shelter') || id.includes('sleep')) return 'shelter'
+  if (id.includes('pack') || id.includes('carry') || id.includes('foot')) return 'pack'
+  if (id.includes('cloth')) return 'clothing'
+  if (id.includes('nav') || id.includes('safe')) return 'safety'
+  if (id.includes('kitchen') || id.includes('water') || id.includes('cook')) return 'kitchen'
+  if (id.includes('hyg') || id.includes('lnt') || id.includes('leave')) return 'hygiene'
+  return 'misc'
+}
 
 const DEFAULT_COSTS = [
   {
@@ -88,6 +101,12 @@ const DEFAULT_COSTS = [
       { id: 'hy5', name: 'Dr. Bronner\'s + Hand Sanitizer', note: '~$5–8 combined', cost: 7, owned: false },
       { id: 'hy6', name: 'Ursack Major food bag', note: '~$90. Bear canister rental also at REI', cost: 0, owned: false },
     ]
+  },
+  {
+    id: 'misc',
+    icon: '📦',
+    title: 'Misc.',
+    items: []
   },
   {
     id: 'food',
@@ -320,11 +339,38 @@ function CostRow({ item, onUpdate, onDelete }) {
               fontSize: '13px',
               color: item.owned ? '#6b8c5a' : '#e8e0d8',
               cursor: 'text',
-              display: 'block'
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              flexWrap: 'wrap',
             }}
             title="Click to edit"
           >
-            {item.name}
+            <span>
+              {item.name}
+              {item.productName && (
+                <>
+                  <span style={{ color: '#7a6f66' }}> — </span>
+                  <span style={{ color: '#c9a84c' }}>{item.productName}</span>
+                </>
+              )}
+            </span>
+            {item.fromInventory && (
+              <span
+                title="Pulled from your gear inventory"
+                style={{
+                  fontFamily: 'monospace', fontSize: '8px',
+                  letterSpacing: '0.1em', textTransform: 'uppercase',
+                  padding: '2px 6px', borderRadius: '2px',
+                  color: '#6b8c5a',
+                  border: '1px solid #6b8c5a55',
+                  background: 'rgba(107,140,90,0.1)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                ✓ My Gear
+              </span>
+            )}
           </span>
         )}
         <span style={{ fontSize: '11px', color: '#7a6f66', display: 'block', marginTop: '2px' }}>
@@ -610,8 +656,91 @@ function CostSection({ section, onUpdateItem, onDeleteItem, onAddItem, onGasCost
 }
 
 // ── Main CostCalculator ──
-function CostCalculator() {
-  const [costData, setCostData] = useLocalStorage('costData', DEFAULT_COSTS)
+function CostCalculator({ tripId, gearData }) {
+  const EMPTY_COSTS = DEFAULT_COSTS.map(section => ({ ...section, items: [] }))
+  const [costData, setCostData] = useLocalStorage(
+    tripId ? `trip-cost-${tripId}` : 'costData',
+    EMPTY_COSTS
+  )
+
+  // Sync gear list items into cost sections. Each gear item gets a cost
+  // row with id `gear-{categoryId}-{itemId}` so user-edited cost/owned
+  // values are preserved across re-syncs. Items removed from the gear
+  // list are also removed from cost data.
+  useEffect(() => {
+    if (!gearData || gearData.length === 0) return
+
+    const gearRowIds = new Set()
+    const gearRowsBySection = {}
+
+    gearData.forEach(gearCat => {
+      const sectionId = mapGearCategoryToCostSection(gearCat.id)
+      if (!gearRowsBySection[sectionId]) gearRowsBySection[sectionId] = []
+      gearCat.items.forEach(item => {
+        const rowId = `gear-${gearCat.id}-${item.id}`
+        gearRowIds.add(rowId)
+        gearRowsBySection[sectionId].push({
+          id: rowId,
+          name: item.name,
+          productName: item.productName || '',
+          fromInventory: !!item.fromInventory,
+          note: item.note || '',
+          cost: 0,
+          owned: !!item.owned,
+        })
+      })
+    })
+
+    setCostData(prev => {
+      // Ensure all DEFAULT_COSTS sections exist (handles 'misc' added later)
+      const existingIds = new Set(prev.map(s => s.id))
+      let next = [...prev]
+      DEFAULT_COSTS.forEach(defSection => {
+        if (!existingIds.has(defSection.id)) {
+          next.push({ ...defSection, items: [] })
+        }
+      })
+
+      let changed = next !== prev
+
+      next = next.map(section => {
+        const incoming = gearRowsBySection[section.id] || []
+        const existingGearRows = section.items.filter(i => i.id.startsWith('gear-'))
+        const nonGearRows = section.items.filter(i => !i.id.startsWith('gear-'))
+
+        // Merge: keep cost/owned for existing gear rows, drop removed ones,
+        // add new ones.
+        const existingById = new Map(existingGearRows.map(r => [r.id, r]))
+        const mergedGearRows = incoming.map(row => {
+          const existing = existingById.get(row.id)
+          if (existing) {
+            // Preserve user-edited cost/owned, refresh metadata from gear
+            return {
+              ...row,
+              cost: existing.cost,
+              owned: existing.owned,
+            }
+          }
+          return row
+        })
+
+        // Detect change to avoid unnecessary state updates
+        const sameLength = mergedGearRows.length === existingGearRows.length
+        const sameContent = sameLength && mergedGearRows.every((r, i) => {
+          const e = existingGearRows[i]
+          return e && e.id === r.id && e.name === r.name && e.note === r.note
+            && e.productName === r.productName && e.fromInventory === r.fromInventory
+        })
+        if (sameContent) return section
+
+        changed = true
+        return { ...section, items: [...nonGearRows, ...mergedGearRows] }
+      })
+
+      return changed ? next : prev
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gearData])
 
   const updateItem = (sectionId, itemId, updates) => {
     setCostData(prev => prev.map(section =>
