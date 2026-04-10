@@ -47,13 +47,17 @@ export default function NewTripModal({ onClose, onCreated }) {
       if (useAI && trailName.trim()) {
         setAiStatus('Generating gear list with AI... this may take a moment')
         try {
-          aiGear = await generateGearList({
+          const { gearCategories, gearAdvice } = await generateGearList({
             trailName: trailName.trim(),
             description: buildAIDescription(),
             startDate: startDate || null,
             endDate: endDate || null,
           })
-          localStorage.setItem(`trip-gear-${trip.id}`, JSON.stringify(aiGear))
+          aiGear = gearCategories
+          localStorage.setItem(`trip-gear-${trip.id}`, JSON.stringify(gearCategories))
+          if (gearAdvice) {
+            localStorage.setItem(`trip-gear-advice-${trip.id}`, JSON.stringify(gearAdvice))
+          }
         } catch (aiErr) {
           console.warn('AI gear generation failed, starting blank:', aiErr)
         }

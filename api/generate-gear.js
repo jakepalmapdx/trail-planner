@@ -43,8 +43,8 @@ IMPORTANT: Your recommendations must be specific to THIS trail, THIS duration, a
 - Known hazards specific to this trail
 ${inventoryContext}
 
-Return ONLY a valid JSON array (no markdown, no code fences, no explanation). Format:
-[{"id":"shelter","icon":"⛺","title":"Shelter & Sleep","items":[{"id":"s1","name":"3-Season Tent","note":"Why this matters for THIS trail...","priority":"critical","checked":false,"owned":false}]}]
+Return ONLY a valid JSON object (no markdown, no code fences, no explanation) with this exact shape:
+{"advice":"2-4 sentence review of whether the user's owned gear is suitable for THIS trip. Call out specific items they should consider upgrading, swapping, or even downgrading (e.g. lighter pack, warmer bag, different shoes) and why. If they have no inventory, say so briefly.","categories":[{"id":"shelter","icon":"⛺","title":"Shelter & Sleep","items":[{"id":"s1","name":"3-Season Tent","note":"Why this matters for THIS trail...","priority":"critical","checked":false,"owned":false}]}]}
 
 Categories: Shelter & Sleep, Pack & Carry, Clothing, Navigation & Safety, Kitchen & Water, Hygiene & Leave No Trace, Misc.
 Priorities: "critical", "recommended", "optional"
@@ -60,32 +60,37 @@ Generate 6-10 items per category. Keep notes concise but trail-specific.`
 
     const text = message.content[0].text.trim()
 
-    // Parse the JSON response
-    let gearCategories
+    // Parse the JSON response — expects { advice, categories }
+    let parsed
     try {
-      gearCategories = JSON.parse(text)
+      parsed = JSON.parse(text)
     } catch {
-      const jsonMatch = text.match(/\[[\s\S]*\]/)
-      if (jsonMatch) {
+      // Try to extract a JSON object from the response
+      const objMatch = text.match(/\{[\s\S]*\}/)
+      if (objMatch) {
         try {
-          gearCategories = JSON.parse(jsonMatch[0])
+          parsed = JSON.parse(objMatch[0])
         } catch {
-          let fixed = jsonMatch[0]
+          // Try to fix truncated JSON by closing open structures
+          let fixed = objMatch[0]
           fixed = fixed.replace(/,\s*\{[^}]*$/, '')
           const openBrackets = (fixed.match(/\[/g) || []).length
           const closeBrackets = (fixed.match(/\]/g) || []).length
           const openBraces = (fixed.match(/\{/g) || []).length
           const closeBraces = (fixed.match(/\}/g) || []).length
-          fixed += '}'.repeat(Math.max(0, openBraces - closeBraces))
           fixed += ']'.repeat(Math.max(0, openBrackets - closeBrackets))
-          gearCategories = JSON.parse(fixed)
+          fixed += '}'.repeat(Math.max(0, openBraces - closeBraces))
+          parsed = JSON.parse(fixed)
         }
       } else {
         throw new Error('Failed to parse AI response as JSON')
       }
     }
 
-    return res.status(200).json({ gearCategories })
+    const gearCategories = Array.isArray(parsed) ? parsed : (parsed.categories || [])
+    const gearAdvice = Array.isArray(parsed) ? '' : (parsed.advice || '')
+
+    return res.status(200).json({ gearCategories, gearAdvice })
   } catch (err) {
     console.error('AI generation error:', err)
     return res.status(500).json({ error: err.message || 'Failed to generate gear list' })

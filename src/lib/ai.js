@@ -26,6 +26,6 @@ export async function generateGearList({ trailName, description, startDate, endD
     throw new Error(err.error || `API error: ${res.status}`)
   }
 
-  const { gearCategories } = await res.json()
-  return gearCategories
+  const { gearCategories, gearAdvice } = await res.json()
+  return { gearCategories, gearAdvice: gearAdvice || '' }
 }

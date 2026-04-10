@@ -388,8 +388,9 @@ function GearCategory({ category, onToggleItem, onDeleteItem, onEditItem, onAddI
   )
 }
 
-function GearList({ categories, setCategories }) {
+function GearList({ categories, setCategories, gearAdvice }) {
   const [activeCategory, setActiveCategory] = useState(null)
+  const [adviceCollapsed, setAdviceCollapsed] = useState(false)
 
   const totalItems = categories.reduce((sum, cat) => sum + cat.items.length, 0)
   const checkedItems = categories.reduce((sum, cat) =>
@@ -446,6 +447,53 @@ function GearList({ categories, setCategories }) {
 
   return (
     <div style={{ maxWidth: '860px', margin: '0 auto', padding: '0 24px 80px' }}>
+
+      {/* AI Gear Advice Banner */}
+      {gearAdvice && gearAdvice.trim() && (
+        <div style={{
+          marginTop: '24px',
+          background: 'rgba(201,168,76,0.06)',
+          border: '1px solid rgba(201,168,76,0.25)',
+          borderRadius: '4px',
+          padding: '14px 16px',
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            marginBottom: adviceCollapsed ? 0 : '10px',
+          }}>
+            <div style={{
+              fontFamily: 'monospace', fontSize: '10px',
+              letterSpacing: '0.14em', textTransform: 'uppercase',
+              color: '#c9a84c',
+            }}>
+              ✨ AI Gear Suitability Review
+            </div>
+            <button
+              onClick={() => setAdviceCollapsed(c => !c)}
+              style={{
+                background: 'none', border: 'none',
+                color: '#7a6f66', cursor: 'pointer',
+                fontSize: '11px', fontFamily: 'monospace',
+                letterSpacing: '0.1em', textTransform: 'uppercase',
+                padding: '2px 6px',
+              }}
+            >
+              {adviceCollapsed ? 'Show' : 'Hide'}
+            </button>
+          </div>
+          {!adviceCollapsed && (
+            <div style={{
+              fontSize: '13px', color: '#b8afa8', lineHeight: 1.6,
+              whiteSpace: 'pre-wrap',
+            }}>
+              {gearAdvice}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Progress Bar */}
       <div style={{ padding: '24px 0 28px' }}>

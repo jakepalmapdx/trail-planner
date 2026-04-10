@@ -14,6 +14,10 @@ export default function TripView({ trip, onBack, user, onSignOut }) {
     `trip-gear-${trip.id}`,
     EMPTY_GEAR
   )
+  const [gearAdvice] = useLocalStorage(
+    `trip-gear-advice-${trip.id}`,
+    ''
+  )
 
   const tabs = [
     { id: 'gear', label: 'Gear' },
@@ -179,13 +183,18 @@ export default function TripView({ trip, onBack, user, onSignOut }) {
         <GearList
           categories={gearData}
           setCategories={setGearData}
+          gearAdvice={gearAdvice}
         />
       )}
       {activeTab === 'cost' && (
-        <CostCalculator tripId={trip.id} />
+        <CostCalculator tripId={trip.id} gearData={gearData} />
       )}
       {activeTab === 'food' && (
-        <FoodPlanner tripId={trip.id} />
+        <FoodPlanner
+          tripId={trip.id}
+          startDate={trip.start_date}
+          endDate={trip.end_date}
+        />
       )}
     </div>
   )

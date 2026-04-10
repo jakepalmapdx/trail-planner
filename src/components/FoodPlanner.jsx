@@ -1,5 +1,29 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import useLocalStorage from '../hooks/useLocalStorage'
+
+// Build an empty foodPlan with one card per trip day, each with
+// breakfast/lunch/dinner slots ready for input.
+function buildEmptyFoodPlan(startDate, endDate) {
+  if (!startDate) return []
+  const start = new Date(startDate + 'T00:00:00')
+  const end = endDate ? new Date(endDate + 'T00:00:00') : start
+  const msPerDay = 1000 * 60 * 60 * 24
+  const dayCount = Math.max(1, Math.round((end - start) / msPerDay) + 1)
+
+  return Array.from({ length: dayCount }, (_, i) => {
+    const d = new Date(start)
+    d.setDate(start.getDate() + i)
+    const dateLabel = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    return {
+      id: `day${i + 1}`,
+      label: `Day ${i + 1}`,
+      name: dateLabel,
+      miles: 0,
+      calories: 2800,
+      meals: { breakfast: [], lunch: [], dinner: [] },
+    }
+  })
+}
 
 const DEFAULT_FOOD_PLAN = [
   {
@@ -628,7 +652,7 @@ function SnackGrid({ snacks, setSnacks }) {
 }
 
 // ── Main FoodPlanner ──
-function FoodPlanner({ tripId }) {
+function FoodPlanner({ tripId, startDate, endDate }) {
   const [foodPlan, setFoodPlan] = useLocalStorage(
     tripId ? `trip-food-${tripId}` : 'foodPlan',
     []
@@ -637,6 +661,16 @@ function FoodPlanner({ tripId }) {
     tripId ? `trip-snacks-${tripId}` : 'snacks',
     DEFAULT_SNACKS
   )
+
+  // If trip has dates and food plan is empty, scaffold one day card per
+  // hiking day with empty breakfast/lunch/dinner slots.
+  useEffect(() => {
+    if (foodPlan.length === 0 && startDate) {
+      const empty = buildEmptyFoodPlan(startDate, endDate)
+      if (empty.length > 0) setFoodPlan(empty)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startDate, endDate])
 
   const editMealItem = (dayId, mealType, itemId, updates) => {
     setFoodPlan(prev => prev.map(day =>
