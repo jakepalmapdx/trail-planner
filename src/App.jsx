@@ -31,6 +31,7 @@ function App() {
         onBack={() => setActiveTrip(null)}
         user={user}
         onSignOut={signOut}
+        onTripUpdated={setActiveTrip}
       />
     )
   }

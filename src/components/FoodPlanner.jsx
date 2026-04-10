@@ -475,11 +475,13 @@ function DayCard({ day, onEditMealItem, onDeleteMealItem, onAddMealItem, onEditD
                 style={{
                   fontFamily: 'monospace', fontSize: '14px',
                   fontWeight: '700', color: calColor,
-                  cursor: 'text'
+                  cursor: 'pointer',
+                  borderBottom: `1px dashed ${calColor}55`,
+                  paddingBottom: '1px',
                 }}
                 title="Click to edit calorie target"
               >
-                {day.calories.toLocaleString()} cal
+                {day.calories.toLocaleString()} cal ✏️
               </div>
             )}
           </div>
@@ -662,12 +664,18 @@ function FoodPlanner({ tripId, startDate, endDate }) {
     DEFAULT_SNACKS
   )
 
-  // If trip has dates and food plan is empty, scaffold one day card per
-  // hiking day with empty breakfast/lunch/dinner slots.
+  // Scaffold days from trip dates. If empty, build from scratch. If trip
+  // duration was extended after the fact, append new empty days at the end.
+  // Existing day cards (with user data) are never modified or removed.
   useEffect(() => {
-    if (foodPlan.length === 0 && startDate) {
-      const empty = buildEmptyFoodPlan(startDate, endDate)
-      if (empty.length > 0) setFoodPlan(empty)
+    if (!startDate) return
+    const desired = buildEmptyFoodPlan(startDate, endDate)
+    if (desired.length === 0) return
+    if (foodPlan.length === 0) {
+      setFoodPlan(desired)
+    } else if (desired.length > foodPlan.length) {
+      const extra = desired.slice(foodPlan.length)
+      setFoodPlan(prev => [...prev, ...extra])
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startDate, endDate])
@@ -744,7 +752,7 @@ function FoodPlanner({ tripId, startDate, endDate }) {
           { label: 'Total Miles', value: totalMiles, unit: 'mi', color: '#5a8fa3' },
           { label: 'Total Days', value: foodPlan.length, unit: 'days', color: '#c9a84c' },
           { label: 'Target Calories', value: totalCal.toLocaleString(), unit: 'cal total', color: '#d4622a' },
-          { label: 'Avg Per Day', value: Math.round(totalCal / foodPlan.length).toLocaleString(), unit: 'cal/day', color: '#6b8c5a' },
+          { label: 'Avg Per Day', value: foodPlan.length > 0 ? Math.round(totalCal / foodPlan.length).toLocaleString() : '0', unit: 'cal/day', color: '#6b8c5a' },
         ].map(stat => (
           <div key={stat.label} style={{
             flex: 1, minWidth: '120px',
@@ -775,22 +783,24 @@ function FoodPlanner({ tripId, startDate, endDate }) {
       </div>
 
       {/* Info Box */}
-      <div style={{
-        background: 'rgba(90,143,163,0.08)',
-        border: '1px solid rgba(90,143,163,0.2)',
-        borderRadius: '3px', padding: '12px 16px',
-        marginBottom: '24px',
-        fontSize: '13px', color: '#b8afa8', lineHeight: 1.7
-      }}>
-        <span style={{
-          fontFamily: 'monospace', fontSize: '10px',
-          letterSpacing: '0.12em', textTransform: 'uppercase',
-          color: '#5a8fa3', display: 'block', marginBottom: '5px'
+      {foodPlan.length > 0 && (
+        <div style={{
+          background: 'rgba(90,143,163,0.08)',
+          border: '1px solid rgba(90,143,163,0.2)',
+          borderRadius: '3px', padding: '12px 16px',
+          marginBottom: '24px',
+          fontSize: '13px', color: '#b8afa8', lineHeight: 1.7
         }}>
-          📦 Prep Note
-        </span>
-        No resupply on this route — all 5 days of food goes in on Day 1. Pre-bag each day's snacks individually. Remove all unnecessary packaging at home to cut weight. Shop at REI Bend, Market of Choice, or Whole Foods before heading to the trailhead.
-      </div>
+          <span style={{
+            fontFamily: 'monospace', fontSize: '10px',
+            letterSpacing: '0.12em', textTransform: 'uppercase',
+            color: '#5a8fa3', display: 'block', marginBottom: '5px'
+          }}>
+            📦 Prep Note
+          </span>
+          Pack all {foodPlan.length} day{foodPlan.length === 1 ? '' : 's'} of food in on Day 1 unless you have a planned resupply. Pre-bag each day's snacks individually and remove unnecessary packaging at home to cut pack weight. Tap any calorie target below to adjust.
+        </div>
+      )}
 
       {/* Reset */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>

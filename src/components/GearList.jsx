@@ -16,9 +16,10 @@ function GearItem({ item, onToggle, onDelete, onEdit }) {
   const [isEditing, setIsEditing] = useState(false)
   const [editName, setEditName] = useState(item.name)
   const [editNote, setEditNote] = useState(item.note)
+  const [editProduct, setEditProduct] = useState(item.productName || '')
 
   const handleSave = () => {
-    onEdit(item.id, { name: editName, note: editNote })
+    onEdit(item.id, { name: editName, note: editNote, productName: editProduct })
     setIsEditing(false)
   }
 
@@ -71,6 +72,7 @@ function GearItem({ item, onToggle, onDelete, onEdit }) {
               onChange={e => setEditName(e.target.value)}
               onKeyDown={handleKeyDown}
               autoFocus
+              placeholder="Item name (e.g. 3-Season Tent)"
               style={{
                 background: '#1a1714',
                 border: '1px solid #5a8fa3',
@@ -78,6 +80,22 @@ function GearItem({ item, onToggle, onDelete, onEdit }) {
                 color: '#e8e0d8',
                 padding: '5px 8px',
                 fontSize: '13px',
+                width: '100%',
+                outline: 'none'
+              }}
+            />
+            <input
+              value={editProduct}
+              onChange={e => setEditProduct(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Actual product name (e.g. REI Half Dome 2)"
+              style={{
+                background: '#1a1714',
+                border: '1px solid #3d3731',
+                borderRadius: '3px',
+                color: '#b8afa8',
+                padding: '5px 8px',
+                fontSize: '12px',
                 width: '100%',
                 outline: 'none'
               }}
@@ -119,10 +137,38 @@ function GearItem({ item, onToggle, onDelete, onEdit }) {
                 textDecoration: item.checked ? 'line-through' : 'none',
                 textDecorationColor: '#7a6f66',
                 cursor: 'pointer',
-                lineHeight: '1.4'
+                lineHeight: '1.4',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                flexWrap: 'wrap',
               }}
             >
-              {item.name}
+              <span>
+                {item.name}
+                {item.productName && (
+                  <span style={{ color: '#7a6f66' }}> — </span>
+                )}
+                {item.productName && (
+                  <span style={{ color: '#c9a84c' }}>{item.productName}</span>
+                )}
+              </span>
+              {item.fromInventory && (
+                <span
+                  title="Pulled from your gear inventory"
+                  style={{
+                    fontFamily: 'monospace', fontSize: '8px',
+                    letterSpacing: '0.1em', textTransform: 'uppercase',
+                    padding: '2px 6px', borderRadius: '2px',
+                    color: '#6b8c5a',
+                    border: '1px solid #6b8c5a55',
+                    background: 'rgba(107,140,90,0.1)',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  ✓ My Gear
+                </span>
+              )}
             </div>
             {item.note && (
               <div style={{

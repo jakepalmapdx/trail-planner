@@ -10,7 +10,16 @@ export default function NewTripModal({ onClose, onCreated }) {
   const [distance, setDistance] = useState('')
   const [description, setDescription] = useState('')
   const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
+
+  // End date is computed from start + days. (days=1 means start === end)
+  const endDate = (() => {
+    if (!startDate || !duration) return ''
+    const days = parseInt(duration, 10)
+    if (!days || days < 1) return ''
+    const d = new Date(startDate + 'T00:00:00')
+    d.setDate(d.getDate() + (days - 1))
+    return d.toISOString().slice(0, 10)
+  })()
   const [useAI, setUseAI] = useState(true)
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
@@ -47,7 +56,7 @@ export default function NewTripModal({ onClose, onCreated }) {
       if (useAI && trailName.trim()) {
         setAiStatus('Generating gear list with AI... this may take a moment')
         try {
-          const { gearCategories, gearAdvice } = await generateGearList({
+          const { gearCategories, gearAdvice, route } = await generateGearList({
             trailName: trailName.trim(),
             description: buildAIDescription(),
             startDate: startDate || null,
@@ -57,6 +66,9 @@ export default function NewTripModal({ onClose, onCreated }) {
           localStorage.setItem(`trip-gear-${trip.id}`, JSON.stringify(gearCategories))
           if (gearAdvice) {
             localStorage.setItem(`trip-gear-advice-${trip.id}`, JSON.stringify(gearAdvice))
+          }
+          if (route && route.length > 0) {
+            localStorage.setItem(`trip-route-${trip.id}`, JSON.stringify(route))
           }
         } catch (aiErr) {
           console.warn('AI gear generation failed, starting blank:', aiErr)
@@ -153,27 +165,26 @@ export default function NewTripModal({ onClose, onCreated }) {
             </div>
           </div>
 
-          <div className="form-row">
-            <div className="form-field">
-              <label htmlFor="start-date">Start Date</label>
-              <input
-                id="start-date"
-                type="date"
-                value={startDate}
-                onChange={e => setStartDate(e.target.value)}
-                disabled={submitting}
-              />
-            </div>
-            <div className="form-field">
-              <label htmlFor="end-date">End Date</label>
-              <input
-                id="end-date"
-                type="date"
-                value={endDate}
-                onChange={e => setEndDate(e.target.value)}
-                disabled={submitting}
-              />
-            </div>
+          <div className="form-field">
+            <label htmlFor="start-date">Start Date</label>
+            <input
+              id="start-date"
+              type="date"
+              value={startDate}
+              onChange={e => setStartDate(e.target.value)}
+              disabled={submitting}
+            />
+            {endDate && (
+              <div style={{
+                fontFamily: 'monospace', fontSize: '11px',
+                color: '#7a6f66', marginTop: '6px',
+              }}>
+                End date: <span style={{ color: '#e8e0d8' }}>
+                  {new Date(endDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </span> {' '}
+                <span style={{ color: '#5a8fa3' }}>(auto-calculated from {duration} day{duration === '1' ? '' : 's'})</span>
+              </div>
+            )}
           </div>
 
           <div className="form-field">

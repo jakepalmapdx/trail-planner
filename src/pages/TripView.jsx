@@ -3,11 +3,15 @@ import useLocalStorage from '../hooks/useLocalStorage'
 import GearList from '../components/GearList'
 import CostCalculator from '../components/CostCalculator'
 import FoodPlanner from '../components/FoodPlanner'
+import RoutePlanner from '../components/RoutePlanner'
+import EditTripModal from '../components/EditTripModal'
 
 const EMPTY_GEAR = []
 
-export default function TripView({ trip, onBack, user, onSignOut }) {
+export default function TripView({ trip: initialTrip, onBack, user, onSignOut, onTripUpdated }) {
+  const [trip, setTrip] = useState(initialTrip)
   const [activeTab, setActiveTab] = useState('gear')
+  const [editing, setEditing] = useState(false)
 
   // Per-trip localStorage keys — starts empty unless AI pre-populated it
   const [gearData, setGearData] = useLocalStorage(
@@ -19,8 +23,15 @@ export default function TripView({ trip, onBack, user, onSignOut }) {
     ''
   )
 
+  function handleTripUpdated(updated) {
+    setTrip(updated)
+    setEditing(false)
+    if (onTripUpdated) onTripUpdated(updated)
+  }
+
   const tabs = [
     { id: 'gear', label: 'Gear' },
+    { id: 'route', label: 'Route' },
     { id: 'cost', label: 'Cost' },
     { id: 'food', label: 'Food' },
   ]
@@ -80,16 +91,31 @@ export default function TripView({ trip, onBack, user, onSignOut }) {
             Trail Planner
           </div>
 
-          <h1 style={{
-            fontSize: 'clamp(22px, 4vw, 38px)',
-            fontWeight: '700',
-            color: '#f5f1ed',
-            marginBottom: '10px',
-            lineHeight: 1.1,
-            letterSpacing: '-0.02em'
-          }}>
-            {trip.name}
-          </h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px', flexWrap: 'wrap' }}>
+            <h1 style={{
+              fontSize: 'clamp(22px, 4vw, 38px)',
+              fontWeight: '700',
+              color: '#f5f1ed',
+              lineHeight: 1.1,
+              letterSpacing: '-0.02em',
+              margin: 0,
+            }}>
+              {trip.name}
+            </h1>
+            <button
+              onClick={() => setEditing(true)}
+              className="btn btn-ghost"
+              style={{
+                fontSize: '11px',
+                fontFamily: 'monospace',
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                padding: '6px 12px',
+              }}
+            >
+              ✏️ Edit
+            </button>
+          </div>
 
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             {trip.trail_name && (
@@ -186,6 +212,13 @@ export default function TripView({ trip, onBack, user, onSignOut }) {
           gearAdvice={gearAdvice}
         />
       )}
+      {activeTab === 'route' && (
+        <RoutePlanner
+          tripId={trip.id}
+          startDate={trip.start_date}
+          endDate={trip.end_date}
+        />
+      )}
       {activeTab === 'cost' && (
         <CostCalculator tripId={trip.id} gearData={gearData} />
       )}
@@ -194,6 +227,14 @@ export default function TripView({ trip, onBack, user, onSignOut }) {
           tripId={trip.id}
           startDate={trip.start_date}
           endDate={trip.end_date}
+        />
+      )}
+
+      {editing && (
+        <EditTripModal
+          trip={trip}
+          onClose={() => setEditing(false)}
+          onUpdated={handleTripUpdated}
         />
       )}
     </div>

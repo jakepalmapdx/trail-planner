@@ -339,11 +339,38 @@ function CostRow({ item, onUpdate, onDelete }) {
               fontSize: '13px',
               color: item.owned ? '#6b8c5a' : '#e8e0d8',
               cursor: 'text',
-              display: 'block'
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              flexWrap: 'wrap',
             }}
             title="Click to edit"
           >
-            {item.name}
+            <span>
+              {item.name}
+              {item.productName && (
+                <>
+                  <span style={{ color: '#7a6f66' }}> — </span>
+                  <span style={{ color: '#c9a84c' }}>{item.productName}</span>
+                </>
+              )}
+            </span>
+            {item.fromInventory && (
+              <span
+                title="Pulled from your gear inventory"
+                style={{
+                  fontFamily: 'monospace', fontSize: '8px',
+                  letterSpacing: '0.1em', textTransform: 'uppercase',
+                  padding: '2px 6px', borderRadius: '2px',
+                  color: '#6b8c5a',
+                  border: '1px solid #6b8c5a55',
+                  background: 'rgba(107,140,90,0.1)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                ✓ My Gear
+              </span>
+            )}
           </span>
         )}
         <span style={{ fontSize: '11px', color: '#7a6f66', display: 'block', marginTop: '2px' }}>
@@ -655,6 +682,8 @@ function CostCalculator({ tripId, gearData }) {
         gearRowsBySection[sectionId].push({
           id: rowId,
           name: item.name,
+          productName: item.productName || '',
+          fromInventory: !!item.fromInventory,
           note: item.note || '',
           cost: 0,
           owned: !!item.owned,
@@ -685,7 +714,7 @@ function CostCalculator({ tripId, gearData }) {
         const mergedGearRows = incoming.map(row => {
           const existing = existingById.get(row.id)
           if (existing) {
-            // Preserve user-edited cost/owned, refresh name/note from gear
+            // Preserve user-edited cost/owned, refresh metadata from gear
             return {
               ...row,
               cost: existing.cost,
@@ -700,6 +729,7 @@ function CostCalculator({ tripId, gearData }) {
         const sameContent = sameLength && mergedGearRows.every((r, i) => {
           const e = existingGearRows[i]
           return e && e.id === r.id && e.name === r.name && e.note === r.note
+            && e.productName === r.productName && e.fromInventory === r.fromInventory
         })
         if (sameContent) return section
 
