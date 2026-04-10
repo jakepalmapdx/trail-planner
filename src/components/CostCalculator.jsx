@@ -610,8 +610,12 @@ function CostSection({ section, onUpdateItem, onDeleteItem, onAddItem, onGasCost
 }
 
 // ── Main CostCalculator ──
-function CostCalculator() {
-  const [costData, setCostData] = useLocalStorage('costData', DEFAULT_COSTS)
+function CostCalculator({ tripId }) {
+  const EMPTY_COSTS = DEFAULT_COSTS.map(section => ({ ...section, items: [] }))
+  const [costData, setCostData] = useLocalStorage(
+    tripId ? `trip-cost-${tripId}` : 'costData',
+    EMPTY_COSTS
+  )
 
   const updateItem = (sectionId, itemId, updates) => {
     setCostData(prev => prev.map(section =>

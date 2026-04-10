@@ -628,9 +628,15 @@ function SnackGrid({ snacks, setSnacks }) {
 }
 
 // ── Main FoodPlanner ──
-function FoodPlanner() {
-  const [foodPlan, setFoodPlan] = useLocalStorage('foodPlan', DEFAULT_FOOD_PLAN)
-  const [snacks, setSnacks] = useLocalStorage('snacks', DEFAULT_SNACKS)
+function FoodPlanner({ tripId }) {
+  const [foodPlan, setFoodPlan] = useLocalStorage(
+    tripId ? `trip-food-${tripId}` : 'foodPlan',
+    []
+  )
+  const [snacks, setSnacks] = useLocalStorage(
+    tripId ? `trip-snacks-${tripId}` : 'snacks',
+    DEFAULT_SNACKS
+  )
 
   const editMealItem = (dayId, mealType, itemId, updates) => {
     setFoodPlan(prev => prev.map(day =>
